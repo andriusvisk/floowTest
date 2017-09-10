@@ -45,10 +45,12 @@ public class CountService {
                     read lines, put in buffer lines
                     and make a bunch of chunks for them to run
 
+                    //-------------------------
+
+                    doMySlaveWork();
+
                 } else {
-                    act as slave and do my jobs
-                    read chunks for me in ascending order
-                    process them
+                    doMySlaveWork();
                 }
 
                 TimeUnit.SECONDS.sleep(parameters.getReadingPauseInS());
@@ -58,17 +60,36 @@ public class CountService {
         }
     }
 
-    private BufferChunk readToBufferChunk(final Parameters parameters, ReadingState readingState) {
+    private void doMySlaveWork(ReadingState readingState){
+
+        act as slave and do my jobs
+        read chunks for me in ascending order
+        process them -
+
+        at first look at bufer for text, if not find - read from file
+    }
+
+    private void readToBufferChunk(final Parameters parameters, ReadingState readingState, String executorUUID) {
         String buffer = "";
         int counter = 0;
         for (int i = 0; i < parameters.chunkOfLinesSize; i++) {
             if (readingState.getIt().hasNext()) {
                 ++counter;
                 buffer = buffer + " " + readingState.getIt().nextLine();
-
-                //TODO finish
             }
         }
+        addToBuffer(readingState.getBuffer(), buffer, readingState.getLineFromNbr(), readingState.getLineFromNbr() + counter, executorUUID);
+        readingState.setLineFromNbr(readingState.getLineFromNbr() + counter);
+    }
+
+    private void addToBuffer(Map<Long, BufferChunk> buffer, String text, Long lineFromNbr, Long lineToNbr, String executorUUID) {
+        Chunk chunk = new Chunk(lineFromNbr, lineToNbr, executorUUID);
+        BufferChunk bufferChunk = new BufferChunk(text, chunk);
+        buffer.put(lineFromNbr, bufferChunk);
+    }
+
+    private void submitForExecution(BufferChunk bufferChunk, DbUtils dbUtils) {
+        dbUtils.insertOne(bufferChunk.getChunk());
     }
 
     private ReadingState createNewReadingState(final Parameters parameters) throws IOException {
@@ -77,48 +98,7 @@ public class CountService {
         newRs.setLineFromNbr(1L);
         newRs.setBuffer(new HashMap<>());
         newRs.setCounter(0);
-
         return newRs;
-    }
-
-    private void startReading(final Parameters parameters) {
-        try {
-            LineIterator it = FileUtils.lineIterator(new File(parameters.getSourceFileStr()), "UTF-8");
-            try {
-                Long lineFromNbr = 1L;
-                String buffer = "";
-                int counter = 0;
-                Map<String, Long> totalCounts = new HashMap<>();
-                while (it.hasNext()) {
-                    buffer = buffer + " " + it.nextLine();
-                    ++counter;
-                    if (counter == parameters.chunkOfLinesSize) {
-                        processChunk(totalCounts, buffer, lineFromNbr, lineFromNbr + counter, parameters);
-                        counter = 0;
-                        buffer = "";
-                        lineFromNbr = lineFromNbr + counter;
-                    }
-
-                }
-                if (buffer.length() > 0) {
-                    processChunk(totalCounts, buffer, lineFromNbr, lineFromNbr + counter, parameters);
-                }
-            } finally {
-                LineIterator.closeQuietly(it);
-            }
-        } catch (IOException e) {
-            logger.error(e);
-        }
-    }
-
-    private void addToBuffer(Map<Long, BufferChunk> buffer, String text, Long lineFromNbr, Long lineToNbr, String executorUUID, DbUtils dbUtils) {
-        Chunk chunk = new Chunk(lineFromNbr, lineToNbr, executorUUID);
-        BufferChunk bufferChunk = new BufferChunk(text, chunk);
-        buffer.put(lineFromNbr, bufferChunk);
-    }
-
-    private void submitForExecution(BufferChunk bufferChunk, DbUtils dbUtils) {
-        dbUtils.insertOne(bufferChunk);
     }
 
     private Map<String, Long> countStatistics(String str) {
