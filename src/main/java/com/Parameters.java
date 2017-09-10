@@ -3,20 +3,35 @@ package com;
 import org.apache.commons.cli.*;
 import org.apache.commons.lang.StringUtils;
 
+import java.util.UUID;
+
 /**
  * Created by andrius on 08/09/2017.
  */
-public class Parameters {
+final public class Parameters {
 
     private String sourceFileStr;
+
+    private final String myId = UUID.randomUUID().toString();
+
+    //Mongo DB
     private String mongoHost;
     private int mongoPort;
-    private String mongoDatabase = "wordsDb";
+    private final String mongoDatabase = "wordsDb";
+    private final String mongoWordStatCol = "wordsStatistics";
+    private final String mongoChunksCol = "chunks";
+    private final String mongoRunnersCol = "runners";
+    private final String mongoElectionQueueCol = "electionQueue";
     private String mongoUsername = "";
     private String mongoPassowrd = "";
 
 
+    final int keepAlivePingTimeStepInS = 2;
+
+    final int chunkOfLinesSize = 100;
+
     public Parameters(String[] args) {
+
         Options options = new Options();
 
         Option sourceFileOpt = new Option("s", "source", true, "source file");
@@ -45,7 +60,7 @@ public class Parameters {
             int stop = 0;
         } catch (ParseException e) {
             System.out.println(e.getMessage());
-            formatter.printHelp("java –Xmx8192m -jar floowTest.jar", options);
+            formatter.printHelp("java -Xmx8192m -jar floowTest.jar", options);
             System.exit(1);
             return;
         }
@@ -73,5 +88,33 @@ public class Parameters {
 
     public String getMongoDatabase() {
         return mongoDatabase;
+    }
+
+    public String getMyId() {
+        return myId;
+    }
+
+    public int getChunkOfLinesSize() {
+        return chunkOfLinesSize;
+    }
+
+    public String getMongoChunksCol() {
+        return mongoChunksCol;
+    }
+
+    public String getMongoWordStatCol() {
+        return mongoWordStatCol;
+    }
+
+    public String getMongoRunnersCol() {
+        return mongoRunnersCol;
+    }
+
+    public String getMongoElectionQueueCol() {
+        return mongoElectionQueueCol;
+    }
+
+    public int getKeepAlivePingTimeStepInS() {
+        return keepAlivePingTimeStepInS;
     }
 }
