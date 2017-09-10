@@ -35,15 +35,15 @@ public class DbUtils {
         this.parameters = parameters;
     }
 
-    public <T> void insertOne(T entity, String collection) {
-        MongoCollection<Document> mongoCollection = getMongoCollection(collection);
+    public <T> void insertOne(T entity) {
+        MongoCollection<Document> mongoCollection = getMongoCollection(CollectionsEnum.getCollectionByClass(entity.getClass()));
         mongoCollection.insertOne(createDocument(entity));
     }
 
-    public <T> List<T> find(Class<T> classs, String field, String value, String collection) {
+    public <T> List<T> find(Class<T> classs, String field, String value) {
         List<T> ret = new ArrayList<>();
-        MongoCollection<Document> mongoCollection = getMongoCollection(collection);
-        BasicDBObject query = new BasicDBObject(field, value);
+        MongoCollection<Document> mongoCollection = getMongoCollection(CollectionsEnum.getCollectionByClass(classs));
+        BasicDBObject query = (field != null) ? new BasicDBObject(field, value) : new BasicDBObject();
         FindIterable<Document> search = mongoCollection.find(query);
         for (Document current : search) {
             ret.add(createEntity(current, classs));
@@ -51,19 +51,34 @@ public class DbUtils {
         return ret;
     }
 
-    public <T> void updateById(T enity, String collection) {
-        MongoCollection<Document> mongoCollection = getMongoCollection(collection);
-        ObjectId id = ((EntityBase) enity).get_id();
-        ((EntityBase) enity).set_id(null);
+    public <T> List<T> findAll(Class<T> classs) {
+        return find(classs, null, null);
+    }
 
-        Document doc = createDocument(enity);
+    public <T> T findOne(Class<T> classs) {
+        MongoCollection<Document> mongoCollection = getMongoCollection(CollectionsEnum.getCollectionByClass(classs));
+        BasicDBObject query = new BasicDBObject();
+        Document search = mongoCollection.find(query).first();
+        if (search != null) {
+            return createEntity(search, classs);
+        }else {
+            return null;
+        }
+    }
+
+    public <T> void updateById(T entity) {
+        MongoCollection<Document> mongoCollection = getMongoCollection(CollectionsEnum.getCollectionByClass(entity.getClass()));
+        ObjectId id = ((EntityBase) entity).get_id();
+        ((EntityBase) entity).set_id(null);
+
+        Document doc = createDocument(entity);
 
         mongoCollection.updateOne(new Document("_id", id), new Document("$set", doc));
     }
 
-    public <T> void deleteById(T enity, String collection) {
-        MongoCollection<Document> mongoCollection = getMongoCollection(collection);
-        String id = ((EntityBase) enity).get_id().toString();
+    public <T> void deleteById(T entity) {
+        MongoCollection<Document> mongoCollection = getMongoCollection(CollectionsEnum.getCollectionByClass(entity.getClass()));
+        String id = ((EntityBase) entity).get_id().toString();
         mongoCollection.deleteOne(new Document("_id", new ObjectId(id)));
     }
 
@@ -99,10 +114,5 @@ public class DbUtils {
         Date localTime = (Date) serverStatus.get("localTime");
         return localTime.getTime();
     }
-    /*
-    Indeksai
 
-    db.foo.ensureIndex({name:1}, {unique:true});
-
-    */
 }

@@ -8,6 +8,7 @@ import org.springframework.boot.web.support.SpringBootServletInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import javax.annotation.PostConstruct;
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -31,8 +32,8 @@ public class Application extends SpringBootServletInitializer {
 
         Runnable taskWorker = () -> {
             try {
-                new CountService().startReading(parameters);
-            } catch (InterruptedException e) {
+                new CountService().process(parameters);
+            } catch (InterruptedException | IOException e) {
                 logger.error(e);
                 System.exit(1);
             }
@@ -41,7 +42,7 @@ public class Application extends SpringBootServletInitializer {
         Runnable taskKeepMeAlive = () -> {
             try {
                 AliveService aliveService = new AliveService();
-                while(true) {
+                while (!aliveService.isJobFinished(parameters)) {
                     aliveService.sendPing(parameters);
                     TimeUnit.SECONDS.sleep(parameters.keepAlivePingTimeStepInS);
                 }

@@ -7,8 +7,6 @@ import java.util.Map;
  */
 public class WordsStatistics extends EntityBase {
 
-    private String _id;
-
     private String myId;
 
     private Long fromLineNbr;

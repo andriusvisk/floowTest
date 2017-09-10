@@ -1,5 +1,6 @@
 package com;
 
+import com.entit.Global;
 import com.entit.Runner;
 import com.entit.WordsStatistics;
 import com.google.gson.Gson;
@@ -22,7 +23,7 @@ public class AliveService {
     public void sendPing(final Parameters parameters) {
         DbUtils dbUtils = new DbUtils(parameters);
 
-        List<Runner> meAsRunners = dbUtils.find(Runner.class, "runnerUUID", parameters.getMyId(), parameters.getMongoRunnersCol());
+        List<Runner> meAsRunners = dbUtils.find(Runner.class, "runnerUUID", parameters.getMyId());
 
         if (meAsRunners.size() > 1) { // in case there are more than one record, leave just one
             List<Runner> tmpArr = new ArrayList<>();
@@ -30,7 +31,7 @@ public class AliveService {
             int count = 0;
             for (Runner runner : meAsRunners) {
                 if (count > 0) {
-                    dbUtils.deleteById(runner, parameters.getMongoRunnersCol());
+                    dbUtils.deleteById(runner);
                 }
                 ++count;
             }
@@ -40,16 +41,24 @@ public class AliveService {
             Long dbLocalTime = dbUtils.getMongoDbLocalTimeInMs();
             Runner meAsRunner = meAsRunners.get(0);
             meAsRunner.setPingTimeInMs(dbLocalTime.toString());
-            dbUtils.updateById(meAsRunner, parameters.getMongoRunnersCol());
+            dbUtils.updateById(meAsRunner);
 
         }
         if (meAsRunners.size() == 0) { // create new
             Long dbLocalTime = dbUtils.getMongoDbLocalTimeInMs();
             Runner runner = new Runner(parameters.getMyId(), dbLocalTime.toString());
-            dbUtils.insertOne(runner, parameters.getMongoRunnersCol());
+            dbUtils.insertOne(runner);
         }
+    }
 
-
+    public boolean isJobFinished(final Parameters parameters){
+        DbUtils dbUtils = new DbUtils(parameters);
+        Global global = dbUtils.findOne(Global.class);
+        if(global==null){
+            return false; // might be even haven't started
+        }else{
+            return global.getJobIsFinished();
+        }
     }
 
 }

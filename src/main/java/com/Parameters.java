@@ -18,17 +18,15 @@ final public class Parameters {
     private String mongoHost;
     private int mongoPort;
     private final String mongoDatabase = "wordsDb";
-    private final String mongoWordStatCol = "wordsStatistics";
-    private final String mongoChunksCol = "chunks";
-    private final String mongoRunnersCol = "runners";
-    private final String mongoElectionQueueCol = "electionQueue";
     private String mongoUsername = "";
     private String mongoPassowrd = "";
 
-
     final int keepAlivePingTimeStepInS = 2;
+    final int readingPauseInS = 2;
+    final int runnerTimeOutInS = 30;
 
     final int chunkOfLinesSize = 100;
+    final int mastersChunkBufferSize = 100;
 
     public Parameters(String[] args) {
 
@@ -98,23 +96,19 @@ final public class Parameters {
         return chunkOfLinesSize;
     }
 
-    public String getMongoChunksCol() {
-        return mongoChunksCol;
-    }
-
-    public String getMongoWordStatCol() {
-        return mongoWordStatCol;
-    }
-
-    public String getMongoRunnersCol() {
-        return mongoRunnersCol;
-    }
-
-    public String getMongoElectionQueueCol() {
-        return mongoElectionQueueCol;
-    }
-
     public int getKeepAlivePingTimeStepInS() {
         return keepAlivePingTimeStepInS;
+    }
+
+    public int getRunnerTimeOutInS() {
+        return runnerTimeOutInS;
+    }
+
+    public int getReadingPauseInS() {
+        return readingPauseInS;
+    }
+
+    public int getMastersChunkBufferSize() {
+        return mastersChunkBufferSize;
     }
 }
