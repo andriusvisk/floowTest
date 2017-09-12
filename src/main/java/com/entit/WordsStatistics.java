@@ -14,6 +14,10 @@ public class WordsStatistics extends EntityBase {
 
     private Map<String, Long> counts;
 
+    public WordsStatistics(){
+
+    }
+
     public WordsStatistics(String myId, Long fromLineNbr, Long toLineNbr, Map<String, Long> counts) {
         this.myId = myId;
         this.fromLineNbr = fromLineNbr;

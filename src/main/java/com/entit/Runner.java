@@ -6,11 +6,17 @@ package com.entit;
 public class Runner extends EntityBase {
 
     private String runnerUUID;
-    private String pingTimeInMs;
+    private Long startTimeInMs;
+    private Long pingTimeInMs;
 
-    public Runner(String runnerUUID, String pingTimeInMs) {
+    public Runner(){
+
+    }
+
+    public Runner(String runnerUUID, Long startTimeInMs) {
         this.runnerUUID = runnerUUID;
-        this.pingTimeInMs = pingTimeInMs;
+        this.startTimeInMs = startTimeInMs;
+        this.pingTimeInMs = startTimeInMs;
     }
 
     public String getRunnerUUID() {
@@ -21,12 +27,19 @@ public class Runner extends EntityBase {
         this.runnerUUID = runnerUUID;
     }
 
-    public String getPingTimeInMs() {
+    public Long getStartTimeInMs() {
+        return startTimeInMs;
+    }
+
+    public void setStartTimeInMs(Long startTimeInMs) {
+        this.startTimeInMs = startTimeInMs;
+    }
+
+    public Long getPingTimeInMs() {
         return pingTimeInMs;
     }
 
-    public void setPingTimeInMs(String pingTimeInMs) {
+    public void setPingTimeInMs(Long pingTimeInMs) {
         this.pingTimeInMs = pingTimeInMs;
     }
-
 }

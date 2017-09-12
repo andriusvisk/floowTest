@@ -9,7 +9,6 @@ public enum CollectionsEnum {
 
     RUNNERS(Runner.class),
     WORDS_STATISTICS(WordsStatistics.class),
-    ELECTION_QUEUE(ElectionQueue.class),
     CHUNKS(Chunk.class),
     SYSTEM(Global.class);
 

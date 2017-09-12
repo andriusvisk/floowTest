@@ -30,6 +30,12 @@ public class Application extends SpringBootServletInitializer {
 
         Parameters parameters = new Parameters((debug) ? debugPar.split(" ") : args);
 
+        AliveService aliveService = new AliveService();
+        // register as runner
+        aliveService.sendPing(parameters);
+
+        aliveService.checkGlobalExistsAndActive(new DbUtils(parameters));
+
         Runnable taskWorker = () -> {
             try {
                 new CountService().process(parameters);
@@ -41,9 +47,11 @@ public class Application extends SpringBootServletInitializer {
 
         Runnable taskKeepMeAlive = () -> {
             try {
-                AliveService aliveService = new AliveService();
-                while (!aliveService.isJobFinished(parameters)) {
-                    aliveService.sendPing(parameters);
+                AliveService aliveServiceT = new AliveService();
+                DbUtils dbUtils = new DbUtils(parameters);
+                while (!aliveServiceT.isJobFinished(parameters)) {
+                    aliveServiceT.sendPing(parameters);
+                    aliveServiceT.wipeNotActiveRunners(parameters, dbUtils);
                     TimeUnit.SECONDS.sleep(parameters.keepAlivePingTimeStepInS);
                 }
             } catch (InterruptedException e) {
@@ -54,6 +62,8 @@ public class Application extends SpringBootServletInitializer {
 
         new Thread(taskKeepMeAlive).start();
         new Thread(taskWorker).start();
+
+        SpringApplication.run(Application.class, args);
 
     }
 

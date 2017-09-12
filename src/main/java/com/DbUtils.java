@@ -15,6 +15,9 @@ import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.FindOptions;
 import com.mongodb.client.model.UpdateOptions;
 import org.bson.Document;
+import org.bson.codecs.configuration.CodecProvider;
+import org.bson.codecs.configuration.CodecRegistry;
+import org.bson.codecs.pojo.PojoCodecProvider;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 
@@ -23,6 +26,11 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+
+import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
+import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
+import org.bson.codecs.configuration.CodecProvider;
+import org.bson.codecs.configuration.CodecRegistry;
 
 /**
  * Created by andrius on 08/09/2017.
@@ -36,19 +44,15 @@ public class DbUtils {
     }
 
     public <T> void insertOne(T entity) {
-        MongoCollection<Document> mongoCollection = getMongoCollection(CollectionsEnum.getCollectionByClass(entity.getClass()));
-        mongoCollection.insertOne(createDocument(entity));
+        MongoCollection<T> mongoCollection = getMongoCollection((Class<T>) entity.getClass());
+        mongoCollection.insertOne((T) createDocument(entity));
     }
 
     public <T> List<T> find(Class<T> classs, String field, String value) {
         List<T> ret = new ArrayList<>();
-        MongoCollection<Document> mongoCollection = getMongoCollection(CollectionsEnum.getCollectionByClass(classs));
+        MongoCollection<T> mongoCollection = getMongoCollection(classs);
         BasicDBObject query = (field != null) ? new BasicDBObject(field, value) : new BasicDBObject();
-        FindIterable<Document> search = mongoCollection.find(query);
-        for (Document current : search) {
-            ret.add(createEntity(current, classs));
-        }
-        return ret;
+        return mongoCollection.find(query).into(new ArrayList<T>());
     }
 
     public <T> List<T> findAll(Class<T> classs) {
@@ -56,20 +60,21 @@ public class DbUtils {
     }
 
     public <T> T findOne(Class<T> classs) {
-        MongoCollection<Document> mongoCollection = getMongoCollection(CollectionsEnum.getCollectionByClass(classs));
+        MongoCollection<T> mongoCollection = getMongoCollection(classs);
         BasicDBObject query = new BasicDBObject();
-        Document search = mongoCollection.find(query).first();
-        if (search != null) {
-            return createEntity(search, classs);
-        }else {
-            return null;
+        List<T> list = mongoCollection.find(query).into(new ArrayList<T>());
+        if (list != null) {
+            if(list.size()>0) {
+                return list.get(0);
+            }
         }
+        return null;
     }
 
     public <T> void updateById(T entity) {
-        MongoCollection<Document> mongoCollection = getMongoCollection(CollectionsEnum.getCollectionByClass(entity.getClass()));
-        ObjectId id = ((EntityBase) entity).get_id();
-        ((EntityBase) entity).set_id(null);
+        MongoCollection<T> mongoCollection = getMongoCollection((Class<T>) entity.getClass());
+        ObjectId id = ((EntityBase) entity).getId();
+        ((EntityBase) entity).setId(null);
 
         Document doc = createDocument(entity);
 
@@ -77,8 +82,8 @@ public class DbUtils {
     }
 
     public <T> void deleteById(T entity) {
-        MongoCollection<Document> mongoCollection = getMongoCollection(CollectionsEnum.getCollectionByClass(entity.getClass()));
-        String id = ((EntityBase) entity).get_id().toString();
+        MongoCollection<T> mongoCollection = getMongoCollection((Class<T>) entity.getClass());
+        String id = ((EntityBase) entity).getId().toString();
         mongoCollection.deleteOne(new Document("_id", new ObjectId(id)));
     }
 
@@ -88,23 +93,16 @@ public class DbUtils {
         return Document.parse(jsonStr);
     }
 
-    private <T> T createEntity(Document document, Class<T> classs) {
-        JsonDeserializer<ObjectId> des = new JsonDeserializer<ObjectId>() {
-            @Override
-            public ObjectId deserialize(JsonElement je, Type type, JsonDeserializationContext jdc) throws JsonParseException {
-                return new ObjectId(je.getAsJsonObject().get("$oid").getAsString());
-            }
-        };
-        Gson gson = new GsonBuilder().registerTypeAdapter(ObjectId.class, des).create();
-        Object obj = gson.fromJson(document.toJson(), classs);
-        return (T) obj;
-    }
-
-    private MongoCollection<Document> getMongoCollection(String collection) {
+    private <T> MongoCollection<T> getMongoCollection(Class<T> classs) {
         MongoClient mongoClient = new MongoClient(parameters.getMongoHost(), parameters.getMongoPort());
-        MongoDatabase mongoDatabase = mongoClient.getDatabase(parameters.getMongoDatabase());
+
+        CodecRegistry defaultCodecRegistry = MongoClient.getDefaultCodecRegistry();
+        CodecProvider pojoCodecProvider = PojoCodecProvider.builder().automatic(true).build();
+        CodecRegistry pojoCodecRegistry = fromRegistries(defaultCodecRegistry, fromProviders(pojoCodecProvider));
+        MongoDatabase mongoDatabase = mongoClient.getDatabase(parameters.getMongoDatabase()).withCodecRegistry(pojoCodecRegistry);
         //TODO slaptazodis kaip array padaryti
-        return mongoDatabase.getCollection(collection);
+        String collection = CollectionsEnum.getCollectionByClass(classs);
+        return mongoDatabase.getCollection(collection, classs);
     }
 
     public Long getMongoDbLocalTimeInMs() {

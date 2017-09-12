@@ -16,6 +16,10 @@ public class Chunk extends EntityBase {
     private String runnerUUID;
     private Boolean calculated;
 
+    public Chunk(){
+
+    }
+
     public Chunk(Long fromLineNbr, Long toLineNbr, String runnerUUID) {
         this.fromLineNbr = fromLineNbr;
         this.toLineNbr = toLineNbr;

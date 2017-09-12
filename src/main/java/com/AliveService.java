@@ -40,24 +40,62 @@ public class AliveService {
         if (meAsRunners.size() == 1) { // update
             Long dbLocalTime = dbUtils.getMongoDbLocalTimeInMs();
             Runner meAsRunner = meAsRunners.get(0);
-            meAsRunner.setPingTimeInMs(dbLocalTime.toString());
+            meAsRunner.setPingTimeInMs(dbLocalTime);
             dbUtils.updateById(meAsRunner);
 
         }
         if (meAsRunners.size() == 0) { // create new
             Long dbLocalTime = dbUtils.getMongoDbLocalTimeInMs();
-            Runner runner = new Runner(parameters.getMyId(), dbLocalTime.toString());
+            Runner runner = new Runner(parameters.getMyId(), dbLocalTime);
             dbUtils.insertOne(runner);
         }
     }
 
-    public boolean isJobFinished(final Parameters parameters){
+    public boolean isJobFinished(final Parameters parameters) {
         DbUtils dbUtils = new DbUtils(parameters);
         Global global = dbUtils.findOne(Global.class);
-        if(global==null){
-            return false; // might be even haven't started
-        }else{
+        if (global == null) {
+            return false; // might be even haven't been started
+        } else {
             return global.getJobIsFinished();
+        }
+    }
+
+    public void wipeNotActiveRunners(final Parameters parameters, DbUtils dbUtils) {
+        List<Runner> list = dbUtils.findAll(Runner.class);
+        Long dbTime = dbUtils.getMongoDbLocalTimeInMs();
+        for (Runner runner : list) {
+            Long runnerLifeTime = (dbTime - Long.valueOf(runner.getPingTimeInMs()));
+            if (runnerLifeTime > (parameters.getRunnerTimeOutInS() * 1000)) {
+                if (runner.getRunnerUUID().compareTo(parameters.getMyId()) != 0) { // not me
+                    dbUtils.deleteById(runner);
+                }
+            }
+        }
+    }
+
+    public void checkGlobalExistsAndActive(DbUtils dbUtils) {
+        List<Global> list = dbUtils.findAll(Global.class);
+        if (list.size() > 1) { // in case there are more than one record, leave just one
+            List<Global> tmpArr = new ArrayList<>();
+            tmpArr.add(list.get(0));
+            int count = 0;
+            for (Global global : list) {
+                if (count > 0) {
+                    dbUtils.deleteById(global);
+                }
+                ++count;
+            }
+            list = tmpArr;
+        }
+        if (list.size() == 1) { // update
+            Global global = list.get(0);
+            global.setJobIsFinished(false);
+            dbUtils.updateById(global);
+        }
+        if (list.size() == 0) { // create new
+            Global global = new Global();
+            dbUtils.insertOne(global);
         }
     }
 
