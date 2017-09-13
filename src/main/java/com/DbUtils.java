@@ -48,7 +48,7 @@ public class DbUtils {
         mongoCollection.insertOne((T) createDocument(entity));
     }
 
-    public <T> List<T> find(Class<T> classs, String field, String value) {
+    public <T> List<T> find(Class<T> classs, String field, Object value) {
         List<T> ret = new ArrayList<>();
         MongoCollection<T> mongoCollection = getMongoCollection(classs);
         BasicDBObject query = (field != null) ? new BasicDBObject(field, value) : new BasicDBObject();

@@ -1,5 +1,6 @@
 package com.entit;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -7,46 +8,12 @@ import java.util.Map;
  */
 public class WordsStatistics extends EntityBase {
 
-    private String myId;
-
-    private Long fromLineNbr;
-    private Long toLineNbr;
-
     private Map<String, Long> counts;
+    private Map<String, Long> intervals;
 
     public WordsStatistics(){
-
-    }
-
-    public WordsStatistics(String myId, Long fromLineNbr, Long toLineNbr, Map<String, Long> counts) {
-        this.myId = myId;
-        this.fromLineNbr = fromLineNbr;
-        this.toLineNbr = toLineNbr;
-        this.counts = counts;
-    }
-
-    public String getMyId() {
-        return myId;
-    }
-
-    public void setMyId(String myId) {
-        this.myId = myId;
-    }
-
-    public Long getFromLineNbr() {
-        return fromLineNbr;
-    }
-
-    public void setFromLineNbr(Long fromLineNbr) {
-        this.fromLineNbr = fromLineNbr;
-    }
-
-    public Long getToLineNbr() {
-        return toLineNbr;
-    }
-
-    public void setToLineNbr(Long toLineNbr) {
-        this.toLineNbr = toLineNbr;
+        counts = new HashMap<>();
+        intervals = new HashMap<>();
     }
 
     public Map<String, Long> getCounts() {
@@ -57,4 +24,11 @@ public class WordsStatistics extends EntityBase {
         this.counts = counts;
     }
 
+    public Map<String, Long> getIntervals() {
+        return intervals;
+    }
+
+    public void setIntervals(Map<String, Long> intervals) {
+        this.intervals = intervals;
+    }
 }

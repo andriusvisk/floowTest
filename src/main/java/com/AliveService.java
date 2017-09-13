@@ -2,16 +2,9 @@ package com;
 
 import com.entit.Global;
 import com.entit.Runner;
-import com.entit.WordsStatistics;
-import com.google.gson.Gson;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.LineIterator;
 import org.apache.log4j.Logger;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Created by andrius on 09/09/2017.
@@ -21,6 +14,7 @@ public class AliveService {
     final static Logger logger = Logger.getLogger(AliveService.class);
 
     public void sendPing(final Parameters parameters) {
+
         DbUtils dbUtils = new DbUtils(parameters);
 
         List<Runner> meAsRunners = dbUtils.find(Runner.class, "runnerUUID", parameters.getMyId());

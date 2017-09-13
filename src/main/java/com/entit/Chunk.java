@@ -7,7 +7,6 @@ import java.util.Map;
  */
 public class Chunk extends EntityBase {
 
-    private Long seqNbr;
     private Long fromLineNbr;
     private Long toLineNbr;
 
@@ -17,7 +16,13 @@ public class Chunk extends EntityBase {
     private Boolean calculated;
 
     public Chunk(){
+        this.calculated = false;
+    }
 
+    public Chunk(Long fromLineNbr, String runnerUUID) {
+        this.fromLineNbr = fromLineNbr;
+        this.runnerUUID = runnerUUID;
+        this.calculated = false;
     }
 
     public Chunk(Long fromLineNbr, Long toLineNbr, String runnerUUID) {
@@ -25,14 +30,6 @@ public class Chunk extends EntityBase {
         this.toLineNbr = toLineNbr;
         this.runnerUUID = runnerUUID;
         this.calculated = false;
-    }
-
-    public Long getSeqNbr() {
-        return seqNbr;
-    }
-
-    public void setSeqNbr(Long seqNbr) {
-        this.seqNbr = seqNbr;
     }
 
     public Long getFromLineNbr() {

@@ -1,5 +1,7 @@
 package com.entit;
 
+import java.util.List;
+
 /**
  * Created by andrius on 10/09/2017.
  */
@@ -8,6 +10,7 @@ public class Runner extends EntityBase {
     private String runnerUUID;
     private Long startTimeInMs;
     private Long pingTimeInMs;
+    private List<Integer> freeMemPerc;
 
     public Runner(){
 
@@ -41,5 +44,13 @@ public class Runner extends EntityBase {
 
     public void setPingTimeInMs(Long pingTimeInMs) {
         this.pingTimeInMs = pingTimeInMs;
+    }
+
+    public List<Integer> getFreeMemPerc() {
+        return freeMemPerc;
+    }
+
+    public void setFreeMemPerc(List<Integer> freeMemPerc) {
+        this.freeMemPerc = freeMemPerc;
     }
 }

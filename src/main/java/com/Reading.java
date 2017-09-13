@@ -40,13 +40,13 @@ public class Reading {
             bufferObj.getChunk().setRunnerUUID(executorUUID); // reassign
             return bufferObj;
         } else {
-            return readChunkFromFile(lineFrom, parameters, executorUUID, putToBuffer);
+            return readChunkFromFile(new Chunk(lineFrom, executorUUID), parameters, putToBuffer);
         }
     }
 
-    private BufferChunk readChunkFromFile(Long lineFrom, final Parameters parameters, String executorUUID, boolean putToBuffer) {
+    private BufferChunk readChunkFromFile(Chunk chunk, final Parameters parameters, boolean putToBuffer) {
         // forward up to required line
-        while ((currentLine < lineFrom - 1) && (hasMoreLines)) {
+        while ((currentLine < chunk.getFromLineNbr() - 1) && (hasMoreLines)) {
             if (it.hasNext()) {
                 it.nextLine();
                 ++currentLine;
@@ -63,7 +63,8 @@ public class Reading {
                     lineBuffer = lineBuffer + " " + it.nextLine();
                 }
             }
-            BufferChunk bufferChunk = new BufferChunk(lineBuffer, new Chunk(startLine, currentLine, executorUUID));
+            chunk.setToLineNbr(currentLine);
+            BufferChunk bufferChunk = new BufferChunk(lineBuffer, chunk);
             if (putToBuffer) {
                 buffer.add(bufferChunk);
             }
