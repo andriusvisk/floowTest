@@ -51,14 +51,14 @@ public class CountService {
 
         List<Chunk> listCompletedChunks = dbUtils.find(Chunk.class, "calculated", true);
         for (Chunk chunk : listCompletedChunks) {
-            //TODO check intervals, do i need to add to statistics and then change intervals
 
+            //TODO check intervals, do i need to add to statistics and then change intervals
             mainStat.setCounts(mergeStatistics(mainStat.getCounts(), chunk.getStatistics()));
 
-            //remove from buffer completed jobs
             reading.setBuffer(reading.getBuffer().stream().filter(p -> p.getChunk().getFromLineNbr() != chunk.getFromLineNbr())
                     .collect(Collectors.toList()));
 
+            // remove from db, it's already in statistics
             dbUtils.deleteById(chunk);
         }
 
@@ -68,33 +68,104 @@ public class CountService {
             dbUtils.updateById(mainStat);
         }
 
-        //TODO mastersChunkBufferSize
-
         List<Runner> listActiveRunners = dbUtils.findAll(Runner.class);
-
+        List<Chunk> listAllChunks = dbUtils.findAll(Chunk.class);
 
         Set<String> activeRunnersUUID = listActiveRunners.stream().map(p -> p.getRunnerUUID()).collect(Collectors.toSet());
 
-        // collect all chunks from dead runners
-        List<Chunk> listIncompletedChunks = dbUtils.find(Chunk.class, "calculated", false);
-        List<Chunk> chunksToBeResubmited = listIncompletedChunks.stream().filter(p -> !activeRunnersUUID.contains(p.getRunnerUUID())).collect(Collectors.toList());
+        List<Chunk> listChunksFromDeadRunners = listAllChunks.stream()
+                .filter(p -> !activeRunnersUUID.contains(p.getRunnerUUID()))
+                .collect(Collectors.toList());
 
-        for (Runner runner : listActiveRunners) {
-            boolean itsMe = (parameters.getMyId().compareTo(runner.getRunnerUUID()) == 0) ? true : false;
-            int howManyChunksPerRunner = (itsMe) ? 5 : 10;
-            int counter = 0;
-            while (++counter <= howManyChunksPerRunner) {
-                if (chunksToBeResubmited.size() > 0) {
-                    Chunk chForResubm = chunksToBeResubmited.get(chunksToBeResubmited.size()-1);
-                    chForResubm.setRunnerUUID(runner.getRunnerUUID());
-                    dbUtils.updateById(chForResubm);
-                    chunksToBeResubmited.remove(chunksToBeResubmited.size()-1);
-                }else {
-                    BufferChunk bufferChunk = reading.readNextChunkForMaster(parameters, runner.getRunnerUUID());
-                    submitForExecution(bufferChunk, dbUtils);
+        // in case of one of the worker crash collect and process all data left by that worker
+        if (listChunksFromDeadRunners.size() > 0) {
+            List<Chunk> listProcessingChunks = listAllChunks.stream()
+                    .filter(p -> !Boolean.TRUE.equals(p.getCalculated())).collect(Collectors.toList());
+
+            listChunksFromDeadRunners.sort((l, r) -> l.getFromLineNbr().compareTo(r.getFromLineNbr()));
+
+            Map<String, Long> activeRunnersLastLine = listAllChunks.stream()
+                    .filter(x -> activeRunnersUUID.contains(x.getRunnerUUID()))
+                    .collect(Collectors.toMap(x -> x.getRunnerUUID(), x -> x.getToLineNbr(), Long::max));
+
+            Map<String, List<Chunk>> chunksForResubmition = new HashMap<>();
+
+            List<Chunk> chunksNeedsBackReading = new ArrayList<>();
+
+            for (Chunk chunkForResubm : listChunksFromDeadRunners) {
+
+                if (activeRunnersLastLine.keySet().size() > 0) {
+                    Map.Entry clMe = activeRunnersLastLine.entrySet().stream().
+                            filter(p -> p.getValue() < chunkForResubm.getFromLineNbr())
+                            .min((l, r) -> l.getValue().compareTo(r.getValue())).get();
+                    String closestRunner = (clMe != null) ? (String) clMe.getKey() : null;
+
+                    if (closestRunner != null) {
+                        long closestRunnerAlreadyProcChnkCnt = listProcessingChunks.stream()
+                                .filter(p -> p.getRunnerUUID().compareTo(closestRunner) == 0).count();
+
+                        boolean itsMe = (parameters.getMyId().compareTo(closestRunner) == 0) ? true : false;
+                        int howManyChunksPerRunner = (itsMe) ? 5 : 10;
+
+                        List<Chunk> chunksForRunner = chunksForResubmition.get(closestRunner);
+
+                        if (chunksForRunner == null)
+                            chunksForRunner = new ArrayList<>();
+
+                        if (chunksForRunner.size() + closestRunnerAlreadyProcChnkCnt < howManyChunksPerRunner) {
+                            chunkForResubm.setRunnerUUID(closestRunner);
+                            chunksForRunner.add(chunkForResubm);
+                            chunksForResubmition.put(closestRunner, chunksForRunner);
+                            activeRunnersLastLine.put(closestRunner, chunkForResubm.getToLineNbr());
+                        }
+                    } else {
+                        chunksNeedsBackReading.add(chunkForResubm);
+                    }
+                } else {
+                    chunksNeedsBackReading.add(chunkForResubm); // or master started again and working alone after crash
                 }
             }
 
+            if (chunksNeedsBackReading.size() > 0) {
+                listActiveRunners.sort((r1, r2) -> r2.getStartTimeInMs().compareTo(r1.getStartTimeInMs())); //desc
+                String lastJoinedRunner = listActiveRunners.get(0).getRunnerUUID();
+                for (Chunk chunkForResubm : chunksNeedsBackReading) {
+                    List<Chunk> chunksForRunner = chunksForResubmition.get(lastJoinedRunner);
+
+                    if (chunksForRunner == null)
+                        chunksForRunner = new ArrayList<>();
+                    chunkForResubm.setRunnerUUID(lastJoinedRunner);
+                    chunksForRunner.add(chunkForResubm);
+                    chunksForResubmition.put(lastJoinedRunner, chunksForRunner);
+                    activeRunnersLastLine.put(lastJoinedRunner, chunkForResubm.getToLineNbr());
+                }
+            }
+
+            for (String runnerUUID : chunksForResubmition.keySet()) {
+                List<Chunk> chunksForRunner = chunksForResubmition.get(runnerUUID);
+                for (Chunk chunk : chunksForRunner) {
+                    dbUtils.updateById(chunk);
+                }
+
+            }
+        } else { // no crashes detected, process in regular manner
+            listActiveRunners.sort((l, r) -> l.getStartTimeInMs().compareTo(r.getStartTimeInMs()));
+            for (Runner runner : listActiveRunners) {
+                boolean itsMe = (parameters.getMyId().compareTo(runner.getRunnerUUID()) == 0) ? true : false;
+                int howManyChunksPerRunner = (itsMe) ? 5 : 10;
+                int counter = 0;
+                while (++counter <= howManyChunksPerRunner) {
+                    cia
+                    BufferChunk bufferChunk = reading.readNextChunkForMaster(parameters, itsMe, runner.getRunnerUUID());
+                    if (bufferChunk != null) {
+                        //TODO check it is not in statistics yet
+                        submitForExecution(bufferChunk, dbUtils);
+                    } else {
+                        //TODO readched end of file
+                    }
+                }
+
+            }
         }
 
     }
@@ -103,11 +174,15 @@ public class CountService {
         List<Chunk> jobs = readMyJobsToDo(parameters, dbUtils);
         for (Chunk job : jobs) {
             BufferChunk bc = reading.readChunkForSlave(job, parameters);
-            Map<String, Long> stat = countStatistics(bc.getText());
-            bc.getChunk().setStatistics(stat);
-            bc.getChunk().setCalculated(true);
-            bc.getChunk().setId(job.getId());
-            dbUtils.updateById(bc.getChunk());
+            if (bc != null) {
+                Map<String, Long> stat = countStatistics(bc.getText());
+                bc.getChunk().setStatistics(stat);
+                bc.getChunk().setCalculated(true);
+                bc.getChunk().setId(job.getId());
+                dbUtils.updateById(bc.getChunk());
+            } else {
+                logger.error("Error read chunk");
+            }
         }
     }
 

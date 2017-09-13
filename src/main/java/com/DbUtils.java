@@ -37,10 +37,23 @@ import org.bson.codecs.configuration.CodecRegistry;
  */
 public class DbUtils {
 
-    Parameters parameters;
+    private Parameters parameters;
+
+    private MongoClient mongoClient;
+    private CodecRegistry defaultCodecRegistry;
+    private CodecProvider pojoCodecProvider;
+    private CodecRegistry pojoCodecRegistry;
+    private MongoDatabase mongoDatabase;
+    private MongoDatabase databaseAdmin;
 
     public DbUtils(Parameters parameters) {
         this.parameters = parameters;
+        mongoClient = new MongoClient(parameters.getMongoHost(), parameters.getMongoPort());
+        defaultCodecRegistry = MongoClient.getDefaultCodecRegistry();
+        pojoCodecProvider = PojoCodecProvider.builder().automatic(true).build();
+        pojoCodecRegistry = fromRegistries(defaultCodecRegistry, fromProviders(pojoCodecProvider));
+        mongoDatabase = mongoClient.getDatabase(parameters.getMongoDatabase()).withCodecRegistry(pojoCodecRegistry);
+        databaseAdmin = mongoClient.getDatabase("admin").withCodecRegistry(pojoCodecRegistry);
     }
 
     public <T> void insertOne(T entity) {
@@ -94,21 +107,14 @@ public class DbUtils {
     }
 
     private <T> MongoCollection<T> getMongoCollection(Class<T> classs) {
-        MongoClient mongoClient = new MongoClient(parameters.getMongoHost(), parameters.getMongoPort());
 
-        CodecRegistry defaultCodecRegistry = MongoClient.getDefaultCodecRegistry();
-        CodecProvider pojoCodecProvider = PojoCodecProvider.builder().automatic(true).build();
-        CodecRegistry pojoCodecRegistry = fromRegistries(defaultCodecRegistry, fromProviders(pojoCodecProvider));
-        MongoDatabase mongoDatabase = mongoClient.getDatabase(parameters.getMongoDatabase()).withCodecRegistry(pojoCodecRegistry);
         //TODO slaptazodis kaip array padaryti
         String collection = CollectionsEnum.getCollectionByClass(classs);
         return mongoDatabase.getCollection(collection, classs);
     }
 
     public Long getMongoDbLocalTimeInMs() {
-        MongoClient mongoClient = new MongoClient(parameters.getMongoHost(), parameters.getMongoPort());
-        MongoDatabase database = mongoClient.getDatabase("admin");
-        Document serverStatus = database.runCommand(new Document("serverStatus", 1));
+        Document serverStatus = databaseAdmin.runCommand(new Document("serverStatus", 1));
         Date localTime = (Date) serverStatus.get("localTime");
         return localTime.getTime();
     }

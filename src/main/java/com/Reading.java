@@ -24,8 +24,8 @@ public class Reading {
     }
 
     // master read
-    public BufferChunk readNextChunkForMaster(final Parameters parameters, String executorUUID) {
-        return readChunk(currentLine + 1, parameters, true, executorUUID);
+    public BufferChunk readNextChunkForMaster(final Parameters parameters, boolean masterReadForHimself, String executorUUID) {
+        return readChunk(currentLine + 1, parameters, masterReadForHimself, executorUUID);
     }
 
     // slave read
@@ -33,14 +33,14 @@ public class Reading {
         return readChunk(chunk.getFromLineNbr(), parameters, false, chunk.getRunnerUUID());
     }
 
-    private BufferChunk readChunk(Long lineFrom, final Parameters parameters, boolean putToBuffer, String executorUUID) {
+    private BufferChunk readChunk(Long lineFrom, final Parameters parameters, boolean masterReadForHimself, String executorUUID) {
         // slave has empty buffer
         BufferChunk bufferObj = buffer.stream().filter(x -> x.getChunk().getFromLineNbr().equals(lineFrom)).findFirst().orElse(null);
         if (bufferObj != null) {
             bufferObj.getChunk().setRunnerUUID(executorUUID); // reassign
             return bufferObj;
         } else {
-            return readChunkFromFile(new Chunk(lineFrom, executorUUID), parameters, putToBuffer);
+            return readChunkFromFile(new Chunk(lineFrom, executorUUID), parameters, masterReadForHimself);
         }
     }
 
