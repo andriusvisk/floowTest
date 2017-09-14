@@ -34,10 +34,11 @@ public class Application extends SpringBootServletInitializer {
         Parameters parameters = new Parameters((debug) ? debugPar.split(" ") : args);
 
         AliveService aliveService = new AliveService();
+        DbUtils dbUtilsT = new DbUtils(parameters);
         // register as runner
-        aliveService.sendPing(parameters);
+        aliveService.sendPing(parameters, dbUtilsT);
 
-        aliveService.checkGlobalExistsAndActive(new DbUtils(parameters));
+        aliveService.checkGlobalExistsAndActive(dbUtilsT);
 
         Runnable taskWorker = () -> {
             try {
@@ -53,8 +54,8 @@ public class Application extends SpringBootServletInitializer {
 
                 AliveService aliveServiceT = new AliveService();
                 DbUtils dbUtils = new DbUtils(parameters);
-                while (!aliveServiceT.isJobFinished(parameters)) {
-                    aliveServiceT.sendPing(parameters);
+                while (!aliveServiceT.isJobFinished(parameters, dbUtils)) {
+                    aliveServiceT.sendPing(parameters, dbUtils);
                     aliveServiceT.wipeNotActiveRunners(parameters, dbUtils);
                     TimeUnit.SECONDS.sleep(parameters.keepAlivePingTimeStepInS);
                 }

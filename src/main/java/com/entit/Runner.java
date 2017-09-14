@@ -10,7 +10,7 @@ public class Runner extends EntityBase {
     private String runnerUUID;
     private Long startTimeInMs;
     private Long pingTimeInMs;
-    private List<Integer> freeMemPerc;
+    private Integer freeMemPerc;
 
     public Runner(){
 
@@ -46,11 +46,11 @@ public class Runner extends EntityBase {
         this.pingTimeInMs = pingTimeInMs;
     }
 
-    public List<Integer> getFreeMemPerc() {
+    public Integer getFreeMemPerc() {
         return freeMemPerc;
     }
 
-    public void setFreeMemPerc(List<Integer> freeMemPerc) {
+    public void setFreeMemPerc(Integer freeMemPerc) {
         this.freeMemPerc = freeMemPerc;
     }
 }

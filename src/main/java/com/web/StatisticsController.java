@@ -5,6 +5,8 @@ import com.Utilities;
 import com.charting.BarColor;
 import com.entit.Runner;
 import com.entit.WordsStatistics;
+import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -16,10 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.ModelAndView;
 
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -37,31 +36,17 @@ public class StatisticsController {
         String parameterWord = webRequest.getParameter("word");
 
         ModelAndView model = new ModelAndView("statistics");
-        String mongoHost = System.getProperty("mongoHost");
-        String mongoPort = System.getProperty("mongoPort");
-        String mongoDb = System.getProperty("mongoDatabase");
+
         String myUUID = System.getProperty("myUUID");
 
-        DbUtils dbUtils = new DbUtils(mongoHost, Integer.parseInt(mongoPort), mongoDb);
-
-        List<Runner> listActiveRunners = dbUtils.findAll(Runner.class);
+        List<Runner> listActiveRunners = webUtils.dbUtils.findAll(Runner.class);
 
         model.addObject("listActiveRunners", listActiveRunners);
-        model.addObject("mongoServerLocalTime", dbUtils.getMongoDbLocalTimeInMs());
+        model.addObject("mongoServerLocalTime", webUtils.dbUtils.getMongoDbLocalTimeInMs());
         model.addObject("myUUID", myUUID);
         model.addObject("webUtils", webUtils);
 
-
-        int wordsCount = 2;
-        int chartHeight = wordsCount * 19 + 150;
-        String[] charColors = new BarColor().getRandomColorsForChart(wordsCount);
-        model.addObject("chartHeight", chartHeight);
-        String mostWordsList = "\"word1\",\"word2\"";
-        model.addObject("mostWords", mostWordsList);
-        model.addObject("mostWordCounts", "101,102");
-        model.addObject("backgroundColor", charColors[0]);
-        model.addObject("borderColor", charColors[1]);
-
+        prepareResponse(model, parameterWord, webUtils.dbUtils);
 
         return model;
     }
@@ -70,8 +55,8 @@ public class StatisticsController {
 
         WordsStatistics mainStat = dbUtils.findOne(WordsStatistics.class);
 
-        if (requestedWord != null) {
-            Long requestedWordCounter = mainStat.getCounts().get(requestedWord.toLowerCase());
+        if ((requestedWord != null)&&(StringUtils.isNotEmpty(requestedWord.trim()))) {
+            Long requestedWordCounter = mainStat.getCounts().get(requestedWord.toLowerCase().trim());
             if (requestedWordCounter == null) requestedWordCounter = 0L;
 
             model.addObject("requestedWord", requestedWord);
@@ -80,21 +65,68 @@ public class StatisticsController {
 
         if (mainStat.getCounts().size() > 0) {
             Map<String, Long> sorted = mainStat.getCounts().entrySet().stream()
-                    .sorted(Map.Entry.comparingByValue(Comparator.naturalOrder()))
+                    .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
                     .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue(),
                             (oldValue, newValue) -> oldValue, LinkedHashMap::new));
-            Map.Entry<String, Long>[] wk = (Map.Entry<String, Long>[]) sorted.entrySet().toArray();
+            Map.Entry<String, Long>[] wk = sorted.entrySet().toArray(new Map.Entry[sorted.keySet().size()]);
 
-            int maxResults = 100;
+            int maxResults = 30;
 
-            if(wk.length > maxResults){
+            if (wk.length > maxResults) {
+                model.addObject("twoReports", true);
+                // most
+                Map.Entry<String, Long>[] most = Arrays.copyOfRange(wk, 0, ((wk.length < maxResults) ? wk.length : maxResults) - 1);
+                String[] charColorsM = new BarColor().getRandomColorsForChart(most.length);
+                model.addObject("backgroundColorM", charColorsM[0]);
+                model.addObject("borderColorM", charColorsM[1]);
+                model.addObject("wordsM", prepareWordList(most));
+                model.addObject("countsM", prepareCountsList(most));
+                model.addObject("chartHeightM", most.length * 19 + 150);
+                // least
+                Map.Entry<String, Long>[] least = Arrays.copyOfRange(wk, ((wk.length < maxResults) ? 0 : wk.length - maxResults), wk.length - 1);
+                ArrayUtils.reverse(least);
+                String[] charColorsL = new BarColor().getRandomColorsForChart(least.length);
+                model.addObject("backgroundColorL", charColorsL[0]);
+                model.addObject("borderColorL", charColorsL[1]);
+                model.addObject("wordsL", prepareWordList(least));
+                model.addObject("countsL", prepareCountsList(least));
+                model.addObject("chartHeightL", least.length * 19 + 150);
 
-            }else{
+            } else {
                 // just one report
+                String[] charColorsM = new BarColor().getRandomColorsForChart(wk.length);
+                model.addObject("backgroundColorM", charColorsM[0]);
+                model.addObject("borderColorM", charColorsM[1]);
+                model.addObject("wordsM", prepareWordList(wk));
+                model.addObject("countsM", prepareCountsList(wk));
+                int height = wk.length * 19 + 150;
+                model.addObject("chartHeightM", height);
             }
         }
 
 
+    }
+
+    private String prepareWordList(Map.Entry<String, Long>[] arrMe) {
+        String colect = "";
+        for (Map.Entry<String, Long> entry : arrMe) {
+            if (colect.length() > 0) {
+                colect = colect + ", ";
+            }
+            colect = colect + "\"" + (entry.getKey()).replaceAll("\"", "'") + "\"";
+        }
+        return colect;
+    }
+
+    private String prepareCountsList(Map.Entry<String, Long>[] arrMe) {
+        String colect = "";
+        for (Map.Entry<String, Long> entry : arrMe) {
+            if (colect.length() > 0) {
+                colect = colect + ", ";
+            }
+            colect = colect + entry.getValue().toString();
+        }
+        return colect;
     }
 
 }

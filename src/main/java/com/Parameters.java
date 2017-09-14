@@ -3,7 +3,10 @@ package com;
 import org.apache.commons.cli.*;
 import org.apache.commons.lang.StringUtils;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Created by andrius on 08/09/2017.
@@ -45,6 +48,9 @@ final public class Parameters {
         CommandLine cmd;
 
         try {
+            List<String> argsL = Arrays.stream(args).filter(p->p.toLowerCase().indexOf("-xmx")!=0).collect(Collectors.toList());
+            args = argsL.toArray(new String[argsL.size()]);
+
             cmd = parser.parse(options, args);
 
             this.sourceFileStr = cmd.getOptionValue("source");

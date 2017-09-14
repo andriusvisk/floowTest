@@ -27,7 +27,7 @@ public class CountService {
         Reading reading = createNewReadingState(parameters);
 
         try {
-            while (!aliveService.isJobFinished(parameters)) {
+            while (!aliveService.isJobFinished(parameters, dbUtils)) {
                 if (isIAmMaster(parameters, dbUtils)) {
                     doMyMasteWork(parameters, dbUtils, reading);
                 }
@@ -210,6 +210,7 @@ public class CountService {
 
     private Map<String, Long> countStatistics(String str) {
         List<String> wordList = Arrays.asList(str.split("\\P{L}+"));
+        wordList = wordList.stream().map(f -> f.toLowerCase()).collect(Collectors.toList());
         return wordList.stream().filter(e -> e.length() > 0).collect(Collectors.groupingBy(e -> e, Collectors.counting()));
     }
 

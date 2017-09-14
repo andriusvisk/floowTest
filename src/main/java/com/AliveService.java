@@ -13,9 +13,7 @@ public class AliveService {
 
     final static Logger logger = Logger.getLogger(AliveService.class);
 
-    public void sendPing(final Parameters parameters) {
-
-        DbUtils dbUtils = new DbUtils(parameters);
+    public void sendPing(final Parameters parameters, DbUtils dbUtils) {
 
         List<Runner> meAsRunners = dbUtils.find(Runner.class, "runnerUUID", parameters.getMyId());
 
@@ -35,18 +33,19 @@ public class AliveService {
             Long dbLocalTime = dbUtils.getMongoDbLocalTimeInMs();
             Runner meAsRunner = meAsRunners.get(0);
             meAsRunner.setPingTimeInMs(dbLocalTime);
+            meAsRunner.setFreeMemPerc(MemoryService.getFreeMemoryPerc());
             dbUtils.updateById(meAsRunner);
 
         }
         if (meAsRunners.size() == 0) { // create new
             Long dbLocalTime = dbUtils.getMongoDbLocalTimeInMs();
             Runner runner = new Runner(parameters.getMyId(), dbLocalTime);
+            runner.setFreeMemPerc(MemoryService.getFreeMemoryPerc());
             dbUtils.insertOne(runner);
         }
     }
 
-    public boolean isJobFinished(final Parameters parameters) {
-        DbUtils dbUtils = new DbUtils(parameters);
+    public boolean isJobFinished(final Parameters parameters, DbUtils dbUtils) {
         Global global = dbUtils.findOne(Global.class);
         if (global == null) {
             return false; // might be even haven't been started
