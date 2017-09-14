@@ -55,6 +55,11 @@ final public class Parameters {
             this.mongoPort = Integer.parseInt(mongoPar.substring(mongoPar.indexOf(":")+1));
             this.mongoHost = mongoPar.substring(0, mongoPar.indexOf(":"));
 
+            System.setProperty("mongoHost", String.valueOf(mongoHost));
+            System.setProperty("mongoPort", String.valueOf(mongoPort));
+            System.setProperty("mongoDatabase", mongoDatabase);
+            System.setProperty("myUUID", myId);
+
             int stop = 0;
         } catch (ParseException e) {
             System.out.println(e.getMessage());

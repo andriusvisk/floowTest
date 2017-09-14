@@ -29,6 +29,7 @@ import java.util.Map;
 
 import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
+
 import org.bson.codecs.configuration.CodecProvider;
 import org.bson.codecs.configuration.CodecRegistry;
 
@@ -36,8 +37,6 @@ import org.bson.codecs.configuration.CodecRegistry;
  * Created by andrius on 08/09/2017.
  */
 public class DbUtils {
-
-    private Parameters parameters;
 
     private MongoClient mongoClient;
     private CodecRegistry defaultCodecRegistry;
@@ -47,12 +46,19 @@ public class DbUtils {
     private MongoDatabase databaseAdmin;
 
     public DbUtils(Parameters parameters) {
-        this.parameters = parameters;
-        mongoClient = new MongoClient(parameters.getMongoHost(), parameters.getMongoPort());
+        init(parameters.getMongoHost(), parameters.getMongoPort(), parameters.getMongoDatabase());
+    }
+
+    public DbUtils(String mongoHost, int mongoPort, String mongoDb) {
+        init(mongoHost, mongoPort, mongoDb);
+    }
+
+    private void init(String mongoHost, int mongoPort, String mongoDb) {
+        mongoClient = new MongoClient(mongoHost, mongoPort);
         defaultCodecRegistry = MongoClient.getDefaultCodecRegistry();
         pojoCodecProvider = PojoCodecProvider.builder().automatic(true).build();
         pojoCodecRegistry = fromRegistries(defaultCodecRegistry, fromProviders(pojoCodecProvider));
-        mongoDatabase = mongoClient.getDatabase(parameters.getMongoDatabase()).withCodecRegistry(pojoCodecRegistry);
+        mongoDatabase = mongoClient.getDatabase(mongoDb).withCodecRegistry(pojoCodecRegistry);
         databaseAdmin = mongoClient.getDatabase("admin").withCodecRegistry(pojoCodecRegistry);
     }
 
@@ -77,7 +83,7 @@ public class DbUtils {
         BasicDBObject query = new BasicDBObject();
         List<T> list = mongoCollection.find(query).into(new ArrayList<T>());
         if (list != null) {
-            if(list.size()>0) {
+            if (list.size() > 0) {
                 return list.get(0);
             }
         }
@@ -107,8 +113,6 @@ public class DbUtils {
     }
 
     private <T> MongoCollection<T> getMongoCollection(Class<T> classs) {
-
-        //TODO slaptazodis kaip array padaryti
         String collection = CollectionsEnum.getCollectionByClass(classs);
         return mongoDatabase.getCollection(collection, classs);
     }

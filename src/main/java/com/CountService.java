@@ -6,7 +6,7 @@ import com.entit.WordsStatistics;
 import com.entit.WordsStatisticsExt;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
-import org.apache.log4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
  */
 public class CountService {
 
-    final static Logger logger = Logger.getLogger(CountService.class);
+    final static org.slf4j.Logger logger = LoggerFactory.getLogger(Application.class);
 
     public void process(final Parameters parameters) throws InterruptedException, IOException {
         AliveService aliveService = new AliveService();
@@ -102,7 +102,7 @@ public class CountService {
             List<Chunk> chunksNeedsBackReading = new ArrayList<>();
 
             for (Chunk chunkForResubm : listChunksFromDeadRunners) {
-
+//TODO pagauti cia paleidziant sleiva po intellij paleidimo
                 if (activeRunnersLastLine.keySet().size() > 0) {
                     Map.Entry clMe = activeRunnersLastLine.entrySet().stream().
                             filter(p -> p.getValue() < chunkForResubm.getFromLineNbr())

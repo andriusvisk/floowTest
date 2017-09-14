@@ -1,0 +1,10 @@
+td, .styleclass {
+    color: black;
+    text-decoration: none;
+    font-family: arial, sans-serif;
+    font-size: 13px;
+}
+
+td {
+    border-bottom: 1px solid #ddd;
+}

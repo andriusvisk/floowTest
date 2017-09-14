@@ -1,6 +1,8 @@
 package com;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -9,6 +11,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -17,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 @SpringBootApplication
 public class Application extends SpringBootServletInitializer {
 
-    final static Logger logger = Logger.getLogger(Application.class);
+    final static Logger logger = LoggerFactory.getLogger(Application.class);
 
     volatile boolean finishedJob = false;
 
@@ -40,13 +43,14 @@ public class Application extends SpringBootServletInitializer {
             try {
                 new CountService().process(parameters);
             } catch (InterruptedException | IOException e) {
-                logger.error(e);
+                logger.error(e.getMessage());
                 System.exit(1);
             }
         };
 
         Runnable taskKeepMeAlive = () -> {
             try {
+
                 AliveService aliveServiceT = new AliveService();
                 DbUtils dbUtils = new DbUtils(parameters);
                 while (!aliveServiceT.isJobFinished(parameters)) {
@@ -55,7 +59,7 @@ public class Application extends SpringBootServletInitializer {
                     TimeUnit.SECONDS.sleep(parameters.keepAlivePingTimeStepInS);
                 }
             } catch (InterruptedException e) {
-                logger.error(e);
+                logger.error(e.getMessage());
                 System.exit(1);
             }
         };
@@ -63,6 +67,9 @@ public class Application extends SpringBootServletInitializer {
         new Thread(taskKeepMeAlive).start();
         new Thread(taskWorker).start();
 
+        int portToUse = (debug) ? 8080 : new Utilities().getRandomPortToUse();
+        logger.warn("Use link to track system - http://localhost:" + portToUse);
+        System.getProperties().put("server.port", portToUse);
         SpringApplication.run(Application.class, args);
 
     }
