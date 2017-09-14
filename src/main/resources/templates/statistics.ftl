@@ -8,7 +8,7 @@
     <p class="styleclass">MongoDB server time: ${webUtils.formatDateAndTime(mongoServerLocalTime)}</p>
     <table>
         <tr>
-            <td>
+            <td style="vertical-align: top;">
                 <table>
                     <tr><td>Master</td><td>ID</td><td>Start time</td><td>Ping time</td><td>It's me</td></tr>
                     <#list listActiveRunners as runner>
@@ -28,7 +28,69 @@
             </td>
             <td>
 
-
+                <div id="mostCommonWordDiv">
+                    <script src="/js/Chart.bundle.js"></script>
+                    <canvas id="mostCommonWord" width="650" height="${chartHeight}"></canvas>
+                    <script>
+                        var ctx = document.getElementById("mostCommonWord");
+                        var myChart = new Chart(ctx, {
+                            type: 'horizontalBar',
+                            data: {
+                                labels: [${mostWords}],
+                                datasets: [{
+                                    label: 'most common words',
+                                    data: [${mostWordCounts}],
+                                    backgroundColor: [${backgroundColor}],
+                                    borderColor: [${borderColor}],
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                scales: {
+                                    xAxes: [{
+                                        ticks: {
+                                            beginAtZero: true
+                                        }
+                                    }]
+                                }
+                            }
+                        });
+                    </script>
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td></td>
+            <td>
+                <div id="leastCommonWordDiv">
+                    <script src="/js/Chart.bundle.js"></script>
+                    <canvas id="leastCommonWord" width="650" height="${chartHeight}"></canvas>
+                    <script>
+                        var ctx = document.getElementById("leastCommonWord");
+                        var myChart = new Chart(ctx, {
+                            type: 'horizontalBar',
+                            data: {
+                                labels: [${mostWords}],
+                                datasets: [{
+                                    label: 'least common words',
+                                    data: [${mostWordCounts}],
+                                    backgroundColor: [${backgroundColor}],
+                                    borderColor: [${borderColor}],
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                scales: {
+                                    xAxes: [{
+                                        ticks: {
+                                            beginAtZero: true
+                                        }
+                                    }]
+                                }
+                            }
+                        });
+                    </script>
+                </div>
             </td>
         </tr>
     </table>

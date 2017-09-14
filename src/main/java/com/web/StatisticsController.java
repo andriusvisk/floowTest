@@ -2,6 +2,7 @@ package com.web;
 
 import com.DbUtils;
 import com.Utilities;
+import com.charting.BarColor;
 import com.entit.Runner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -40,6 +41,19 @@ public class StatisticsController {
         model.addObject("mongoServerLocalTime", dbUtils.getMongoDbLocalTimeInMs());
         model.addObject("myUUID", myUUID);
         model.addObject("webUtils", webUtils);
+
+
+        int wordsCount = 2;
+        int chartHeight = wordsCount*19+150;
+        String[] charColors = new BarColor().getRandomColorsForChart(wordsCount);
+        model.addObject("chartHeight", chartHeight);
+        String mostWordsList = "\"word1\",\"word2\"";
+        model.addObject("mostWords", mostWordsList);
+        model.addObject("mostWordCounts", "101,102");
+        model.addObject("backgroundColor", charColors[0]);
+        model.addObject("borderColor", charColors[1]);
+
+
         return model;
     }
 
