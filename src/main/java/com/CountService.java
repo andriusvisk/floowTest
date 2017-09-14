@@ -3,6 +3,7 @@ package com;
 import com.entit.Chunk;
 import com.entit.Runner;
 import com.entit.WordsStatistics;
+import com.entit.WordsStatisticsExt;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.log4j.Logger;
@@ -50,22 +51,30 @@ public class CountService {
         }
 
         List<Chunk> listCompletedChunks = dbUtils.find(Chunk.class, "calculated", true);
+
         for (Chunk chunk : listCompletedChunks) {
 
-            //TODO check intervals, do i need to add to statistics and then change intervals
-            mainStat.setCounts(mergeStatistics(mainStat.getCounts(), chunk.getStatistics()));
+            WordsStatisticsExt wordsStatExt = new WordsStatisticsExt(mainStat.getIntervals());
+            if (!reading.alreadyInStatistics(chunk.getFromLineNbr(), wordsStatExt)) {
 
-            reading.setBuffer(reading.getBuffer().stream().filter(p -> p.getChunk().getFromLineNbr() != chunk.getFromLineNbr())
-                    .collect(Collectors.toList()));
+                mainStat.setCounts(mergeStatistics(mainStat.getCounts(), chunk.getStatistics()));
+                mainStat = mergeStatisticsIntervals(chunk, mainStat, reading);
+            }
 
-            // remove from db, it's already in statistics
-            dbUtils.deleteById(chunk);
+            List newBuffer = reading.getBuffer().stream().filter(p -> p.getChunk().getFromLineNbr().compareTo(chunk.getFromLineNbr()) != 0)
+                    .collect(Collectors.toList());
+            reading.setBuffer(newBuffer);
         }
 
         if (freshStart) {
             dbUtils.insertOne(mainStat);
         } else {
             dbUtils.updateById(mainStat);
+        }
+
+        for (Chunk chunk : listCompletedChunks) {
+            // remove from db, it's already in statistics updated in db
+            dbUtils.deleteById(chunk);
         }
 
         List<Runner> listActiveRunners = dbUtils.findAll(Runner.class);
@@ -150,15 +159,14 @@ public class CountService {
             }
         } else { // no crashes detected, process in regular manner
             listActiveRunners.sort((l, r) -> l.getStartTimeInMs().compareTo(r.getStartTimeInMs()));
+            WordsStatisticsExt wordsStatisticsExt = new WordsStatisticsExt(mainStat.getIntervals());
             for (Runner runner : listActiveRunners) {
                 boolean itsMe = (parameters.getMyId().compareTo(runner.getRunnerUUID()) == 0) ? true : false;
                 int howManyChunksPerRunner = (itsMe) ? 5 : 10;
                 int counter = 0;
                 while (++counter <= howManyChunksPerRunner) {
-                    cia
-                    BufferChunk bufferChunk = reading.readNextChunkForMaster(parameters, itsMe, runner.getRunnerUUID());
+                    BufferChunk bufferChunk = reading.readNextChunkForMaster(parameters, itsMe, runner.getRunnerUUID(), wordsStatisticsExt, listAllChunks);
                     if (bufferChunk != null) {
-                        //TODO check it is not in statistics yet
                         submitForExecution(bufferChunk, dbUtils);
                     } else {
                         //TODO readched end of file
@@ -190,10 +198,6 @@ public class CountService {
         dbUtils.insertOne(bufferChunk.getChunk());
     }
 
-    private void submitForExecution(Chunk chunk, DbUtils dbUtils) {
-        dbUtils.insertOne(chunk);
-    }
-
     private List<Chunk> readMyJobsToDo(final Parameters parameters, DbUtils dbUtils) {
         List<Chunk> jobs = dbUtils.find(Chunk.class, "runnerUUID", parameters.getMyId());
         jobs.sort((c1, c2) -> c1.getFromLineNbr().compareTo(c2.getFromLineNbr()));
@@ -212,6 +216,11 @@ public class CountService {
     private Map<String, Long> mergeStatistics(Map<String, Long> statL, Map<String, Long> statR) {
         statL.forEach((k, v) -> statR.merge(k, v, Long::sum));
         return statR;
+    }
+
+    private WordsStatistics mergeStatisticsIntervals(Chunk chunk, WordsStatistics wordsStatistics, Reading reading) {
+        wordsStatistics.setIntervals(reading.mergeIntervals(chunk, wordsStatistics.getIntervals()));
+        return wordsStatistics;
     }
 
     private boolean isIAmMaster(final Parameters parameters, DbUtils dbUtils) {
