@@ -8,6 +8,19 @@
     <p class="styleclass">MongoDB server time: ${webUtils.formatDateAndTime(mongoServerLocalTime)}</p>
     <table>
         <tr>
+            <form action="/" method="post">
+                <td>Search for word statistics:</td>
+                <td><input type="text" width="100" name="word"/></td>
+                <td><button type="submit" value="Submit">Submit</button></td>
+            </form>
+        </tr>
+    </table>
+    <#if requestedWord??>
+        <p class="styleclass">Requested word: ${requestedWord}</p>
+    </#if>
+    &nbsp;
+    <table>
+        <tr>
             <td style="vertical-align: top;">
                 <table>
                     <tr><td>Master</td><td>ID</td><td>Start time</td><td>Ping time</td><td>It's me</td></tr>
