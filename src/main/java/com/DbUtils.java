@@ -4,6 +4,8 @@ import com.entit.EntityBase;
 import com.google.gson.*;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClient;
+import com.mongodb.MongoCredential;
+import com.mongodb.ServerAddress;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
@@ -33,19 +35,32 @@ public class DbUtils {
     private MongoDatabase databaseAdmin;
 
     public DbUtils(Parameters parameters) {
-        init(parameters.getMongoHost(), parameters.getMongoPort(), parameters.getMongoDatabase());
+        init(parameters.getMongoHost(), parameters.getMongoPort(),
+                parameters.getMongoDatabase(), parameters.getMongoUsername(), parameters.getMongoPassowrd());
     }
 
-    public DbUtils(String mongoHost, int mongoPort, String mongoDb) {
-        init(mongoHost, mongoPort, mongoDb);
+    public DbUtils(String mongoHost, int mongoPort, String mongoDb, String username, String password) {
+        init(mongoHost, mongoPort, mongoDb, username, password);
     }
 
     public void closeConnections(){
         mongoClient.close();
     }
 
-    private void init(String mongoHost, int mongoPort, String mongoDb) {
-        mongoClient = new MongoClient(mongoHost, mongoPort);
+    private void init(String mongoHost, int mongoPort, String mongoDb, String username, String password) {
+
+        /*List<ServerAddress> seeds = new ArrayList<>();
+        seeds.add( new ServerAddress( mongoHost, mongoPort));
+        List<MongoCredential> credentials = new ArrayList<>();
+        credentials.add(
+                MongoCredential.createMongoCRCredential(
+                        username,
+                        mongoDb,
+                        password.toCharArray()
+                )
+        );*/
+
+        mongoClient = new MongoClient(mongoHost, mongoPort); //new MongoClient( seeds, credentials );
         defaultCodecRegistry = MongoClient.getDefaultCodecRegistry();
         pojoCodecProvider = PojoCodecProvider.builder().automatic(true).build();
         pojoCodecRegistry = fromRegistries(defaultCodecRegistry, fromProviders(pojoCodecProvider));

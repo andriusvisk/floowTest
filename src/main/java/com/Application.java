@@ -21,7 +21,7 @@ public class Application extends SpringBootServletInitializer {
 
         boolean debug = false;
 
-        String debugPar = "-m localhost:27017 -s /Users/andrius/Desktop/tmp/floodTestData/dump.xml";
+        String debugPar = "-m localhost:27017 -s /Users/andrius/Desktop/tmp/floodTestData/dump.xml -u user1 -p password1";
 
         Parameters parameters = new Parameters((debug) ? debugPar.split(" ") : args);
 

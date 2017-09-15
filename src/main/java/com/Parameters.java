@@ -42,6 +42,14 @@ final public class Parameters {
         mongoOpt.setRequired(true);
         options.addOption(mongoOpt);
 
+        Option usernameOpt = new Option("u", "user", true, "username");
+        usernameOpt.setRequired(true);
+        options.addOption(usernameOpt);
+
+        Option passwordOpt = new Option("p", "password", true, "password");
+        passwordOpt.setRequired(true);
+        options.addOption(passwordOpt);
+
         CommandLineParser parser = new DefaultParser();
         HelpFormatter formatter = new HelpFormatter();
         CommandLine cmd;
@@ -59,10 +67,14 @@ final public class Parameters {
                     (!mongoPar.substring(mongoPar.indexOf(":")+1).matches("\\d+"))) throw new ParseException("Bad mongo host:port parameter");
             this.mongoPort = Integer.parseInt(mongoPar.substring(mongoPar.indexOf(":")+1));
             this.mongoHost = mongoPar.substring(0, mongoPar.indexOf(":"));
+            mongoUsername = cmd.getOptionValue("user");
+            mongoPassowrd = cmd.getOptionValue("password");
 
             System.setProperty("mongoHost", String.valueOf(mongoHost));
             System.setProperty("mongoPort", String.valueOf(mongoPort));
             System.setProperty("mongoDatabase", mongoDatabase);
+            System.setProperty("mongoUsername", mongoUsername);
+            System.setProperty("mongoPassword", mongoPassowrd); // it's not good :)
             System.setProperty("myUUID", myId);
 
             int stop = 0;

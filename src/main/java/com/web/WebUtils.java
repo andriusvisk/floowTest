@@ -28,8 +28,10 @@ public class WebUtils {
         String mongoHost = System.getProperty("mongoHost");
         String mongoPort = System.getProperty("mongoPort");
         String mongoDb = System.getProperty("mongoDatabase");
+        String mongoUsername = System.getProperty("mongoUsername");
+        String mongoPassowrd = System.getProperty("mongoPassword"); // it's not good :)
 
-        dbUtils = new DbUtils(mongoHost, Integer.parseInt(mongoPort), mongoDb);
+        dbUtils = new DbUtils(mongoHost, Integer.parseInt(mongoPort), mongoDb, mongoUsername, mongoPassowrd);
     }
 
     public String formatDateAndTime(Long timeInMs) {
