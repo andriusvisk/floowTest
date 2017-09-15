@@ -1,7 +1,5 @@
 package com.entit;
 
-import java.util.List;
-
 /**
  * Created by andrius on 10/09/2017.
  */

@@ -4,11 +4,8 @@ import com.entit.Chunk;
 import com.entit.Runner;
 import com.entit.WordsStatistics;
 import com.entit.WordsStatisticsExt;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.LineIterator;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -206,7 +203,7 @@ public class CountService {
                 logger.error("Error read chunk");
             }
         }
-        // did my job as master and slave if all the jobs ar submitted, I finished my jobs, so as a master i can exit
+        // did my job as master and slave. if all the jobs ar submitted and finished - I can finish my jobs, so as a master i can exit
         if(allJobsAreSubmitted){ // only master sets this variable
             List<Chunk> listAllChunks = dbUtils.findAll(Chunk.class);
             if(listAllChunks.size()<1) { // there are incompleted jobs, wait with exit
@@ -231,8 +228,8 @@ public class CountService {
 
     private Map<String, Long> countStatistics(String str) {
         List<String> wordList = Arrays.asList(str.split("\\P{L}+"));
-        wordList = wordList.stream().map(f -> f.toLowerCase()).collect(Collectors.toList());
-        return wordList.stream().filter(e -> e.length() > 0).collect(Collectors.groupingBy(e -> e, Collectors.counting()));
+        wordList = wordList.stream().parallel().map(f -> f.toLowerCase()).collect(Collectors.toList());
+        return wordList.stream().parallel().filter(e -> e.length() > 0).collect(Collectors.groupingByConcurrent(e -> e, Collectors.counting()));
     }
 
     private Map<String, Long> mergeStatistics(Map<String, Long> statL, Map<String, Long> statR) {

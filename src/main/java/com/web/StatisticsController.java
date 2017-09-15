@@ -55,7 +55,7 @@ public class StatisticsController {
 
         WordsStatistics mainStat = dbUtils.findOne(WordsStatistics.class);
 
-        if ((requestedWord != null)&&(StringUtils.isNotEmpty(requestedWord.trim()))) {
+        if ((requestedWord != null) && (StringUtils.isNotEmpty(requestedWord.trim()))) {
             Long requestedWordCounter = mainStat.getCounts().get(requestedWord.toLowerCase().trim());
             if (requestedWordCounter == null) requestedWordCounter = 0L;
 
@@ -64,7 +64,11 @@ public class StatisticsController {
         }
 
         if (mainStat.getCounts().size() > 0) {
-            Map<String, Long> sorted = mainStat.getCounts().entrySet().stream()
+
+            model.addObject("longestWords", getLongesWords(mainStat));
+            model.addObject("totalWords", getTotalWordsCount(mainStat));
+
+            Map<String, Long> sorted = mainStat.getCounts().entrySet().stream().parallel()
                     .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
                     .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue(),
                             (oldValue, newValue) -> oldValue, LinkedHashMap::new));
@@ -105,6 +109,24 @@ public class StatisticsController {
         }
 
 
+    }
+
+    private List<String> getLongesWords(WordsStatistics mainStat) {
+        String tmpStrLongest = mainStat.getCounts().keySet().stream().parallel()
+                .max(Comparator.comparingInt(String::length)).orElse("");
+        if (tmpStrLongest.length() > 0) {
+            List<String> longestWords = mainStat.getCounts().keySet().stream().parallel().filter(e -> e.length() == (tmpStrLongest.length())).collect(Collectors.toList());
+            longestWords.sort(Comparator.naturalOrder());
+            return longestWords;
+        }
+        return null;
+    }
+
+    private Long getTotalWordsCount(WordsStatistics mainStat) {
+        if (mainStat.getCounts().keySet().size() > 0) {
+            return mainStat.getCounts().values().stream().parallel().collect(Collectors.summingLong(Long::longValue));
+        }
+        return null;
     }
 
     private String prepareWordList(Map.Entry<String, Long>[] arrMe) {

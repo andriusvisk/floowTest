@@ -10,21 +10,38 @@
             <td style="vertical-align: top;">
                 <table>
                     <tr>
-                        <td style="vertical-align: top;">
+                        <td style="vertical-align: top;" colspan="3">
                             MongoDB server time: ${webUtils.formatDateAndTime(mongoServerLocalTime)}
                         </td>
                     </tr>
                     <tr>
                         <form action="/" method="post">
-                            <td>Search for word statistics:</td>
+                            <td>Search for word:</td>
                             <td><input type="text" width="100" name="word"/></td>
                             <td><button type="submit">Search</button></td>
                         </form>
                     </tr>
                     <#if requestedWord??>
                         <tr>
-                            <td style="vertical-align: top;">
+                            <td style="vertical-align: top;" colspan="3">
                                 Requested word - ${requestedWord}, counter - ${requestedWordCounter}
+                            </td>
+                        </tr>
+                    </#if>
+                    <#if longestWords??>
+                        <tr>
+                            <td style="vertical-align: top;" colspan="3">
+                                Longest words (length-${longestWords[0]?length}, count-${longestWords?size}) -
+                                <#list longestWords as longWord>
+                                    <#if (longWord?index > 0)>, </#if>${longWord}
+                                </#list>
+                            </td>
+                        </tr>
+                    </#if>
+                    <#if totalWords??>
+                        <tr>
+                            <td style="vertical-align: top;">
+                                Total words count ${totalWords}
                             </td>
                         </tr>
                     </#if>
@@ -36,12 +53,12 @@
                     <#list listActiveRunners as runner>
                         <tr>
                             <td align="center">
-                                <#if runner?index = 0><img src="plus.png" height="22" width="22"/></#if>
+                                <#if runner?index = 0><img src="plus.png" height="18" width="18"/></#if>
                             </td>
                             <td>${runner.runnerUUID}</td>
                             <td>${webUtils.formatDateAndTime(runner.startTimeInMs)}</td>
                             <td>${webUtils.formatDateAndTime(runner.pingTimeInMs)}</td>
-                            <td>${runner.freeMemPerc!}</td>
+                            <td align="center">${runner.freeMemPerc!}</td>
                             <td align="center">
                                 <#if runner.runnerUUID = myUUID><img src="smile.png" height="22" width="22"/></#if>
                             </td>

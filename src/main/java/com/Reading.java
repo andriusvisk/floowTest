@@ -11,7 +11,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Created by andrius on 10/09/2017.
@@ -216,7 +215,7 @@ public class Reading {
 
 
     public boolean alreadySubmitted(Long chunkFromLine, WordsStatisticsExt stat, List<Chunk> listAllChunks) {
-        boolean foundInRunCh = (listAllChunks.stream().filter(p -> chunkFromLine == p.getFromLineNbr()).findFirst().orElse(null) == null) ? false : true;
+        boolean foundInRunCh = (listAllChunks.stream().parallel().filter(p -> chunkFromLine == p.getFromLineNbr()).findFirst().orElse(null) == null) ? false : true;
         if (!alreadyInStatistics(chunkFromLine, stat) && !foundInRunCh) {
             return false;
         }
