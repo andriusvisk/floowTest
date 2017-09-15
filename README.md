@@ -13,7 +13,7 @@ cd floowTest
 
 mvn clean install
 
-java -Xmx500m -jar target/floowTest.jar  -m localhost:27017 -s /Users/andrius/Desktop/tmp/floodTestData/dump.xml -u user1 -p password1
+java -Xmx500m -jar target/floowTest.jar  -m localhost:27017 -s /finfull/path/to/dump.xml -u user1 -p password1
 
 
 
