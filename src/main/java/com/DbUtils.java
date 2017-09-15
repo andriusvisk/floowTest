@@ -53,6 +53,10 @@ public class DbUtils {
         init(mongoHost, mongoPort, mongoDb);
     }
 
+    public void closeConnections(){
+        mongoClient.close();
+    }
+
     private void init(String mongoHost, int mongoPort, String mongoDb) {
         mongoClient = new MongoClient(mongoHost, mongoPort);
         defaultCodecRegistry = MongoClient.getDefaultCodecRegistry();

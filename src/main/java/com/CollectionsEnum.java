@@ -9,8 +9,7 @@ public enum CollectionsEnum {
 
     RUNNERS(Runner.class),
     W_STATISTICS(WordsStatistics.class),
-    CHUNKS(Chunk.class),
-    SYSTEM(Global.class);
+    CHUNKS(Chunk.class);
 
     private Class entityClass;
 

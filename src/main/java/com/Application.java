@@ -13,6 +13,7 @@ import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Created by andrius on 09/09/2017.
@@ -22,51 +23,20 @@ public class Application extends SpringBootServletInitializer {
 
     final static Logger logger = LoggerFactory.getLogger(Application.class);
 
-    volatile boolean finishedJob = false;
-
     public static void main(String[] args) throws Exception {
 
-        //TODO change
-        boolean debug = true;
+        boolean debug = false;
 
         String debugPar = "-m localhost:27017 -s /Users/andrius/Desktop/tmp/floodTestData/dump.xml";
 
         Parameters parameters = new Parameters((debug) ? debugPar.split(" ") : args);
 
-        AliveService aliveService = new AliveService();
+        AliveService aliveService = new AliveService(new AtomicBoolean(false));
         DbUtils dbUtilsT = new DbUtils(parameters);
-        // register as runner
+        // register as a runner
         aliveService.sendPing(parameters, dbUtilsT);
 
-        aliveService.checkGlobalExistsAndActive(dbUtilsT);
-
-        Runnable taskWorker = () -> {
-            try {
-                new CountService().process(parameters);
-            } catch (InterruptedException | IOException e) {
-                logger.error(e.getMessage());
-                System.exit(1);
-            }
-        };
-
-        Runnable taskKeepMeAlive = () -> {
-            try {
-
-                AliveService aliveServiceT = new AliveService();
-                DbUtils dbUtils = new DbUtils(parameters);
-                while (!aliveServiceT.isJobFinished(parameters, dbUtils)) {
-                    aliveServiceT.sendPing(parameters, dbUtils);
-                    aliveServiceT.wipeNotActiveRunners(parameters, dbUtils);
-                    TimeUnit.SECONDS.sleep(parameters.keepAlivePingTimeStepInS);
-                }
-            } catch (InterruptedException e) {
-                logger.error(e.getMessage());
-                System.exit(1);
-            }
-        };
-
-        new Thread(taskKeepMeAlive).start();
-        new Thread(taskWorker).start();
+        App app = new App(parameters);
 
         int portToUse = (debug) ? 8080 : new Utilities().getRandomPortToUse();
         logger.warn("Use link to track system - http://localhost:" + portToUse);

@@ -2,8 +2,13 @@ package com;
 
 import com.entit.Chunk;
 import com.entit.WordsStatisticsExt;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -13,17 +18,40 @@ import java.util.stream.Stream;
  */
 public class Reading {
 
+    final static Logger logger = LoggerFactory.getLogger(Reading.class);
+
     private LineIterator it;
+    private String sourceFile;
     private Long currentLine;
     private boolean hasMoreLines;
 
     private List<BufferChunk> buffer;
 
-    public Reading(LineIterator it) {
-        this.it = it;
+    public Reading(String sourceFile) throws IOException {
+        this.sourceFile = sourceFile;
         buffer = new ArrayList<>();
+        init();
+    }
+
+    private void init() throws IOException {
+        this.it = FileUtils.lineIterator(new File(sourceFile), "UTF-8");
         hasMoreLines = true;
         currentLine = 0L;
+    }
+
+    public void close() {
+        LineIterator.closeQuietly(it);
+    }
+
+    private boolean reopen() {
+        close();
+        try {
+            init();
+            return true;
+        } catch (IOException e) {
+
+        }
+        return false;
     }
 
     // master read
@@ -53,6 +81,14 @@ public class Reading {
     }
 
     private BufferChunk readChunkFromFile(Chunk chunk, final Parameters parameters, boolean putToBuffer) {
+
+        if (currentLine >= chunk.getFromLineNbr()) {
+            // need backreading, reopen file
+            if (!reopen()) {
+                logger.error("Could not reopen file for reading");
+                return null;
+            }
+        }
         // forward up to required line
         while ((currentLine < chunk.getFromLineNbr() - 1) && (hasMoreLines)) {
             if (it.hasNext()) {
@@ -78,13 +114,11 @@ public class Reading {
             }
             return bufferChunk;
         } else {
-            return null;
+            return new BufferChunk(false);
         }
     }
 
     public Long getNextLineToReadForMaster(Long fromLine, WordsStatisticsExt statExt, List<Chunk> listAllChunks) {
-
-        //jei neranda, vadinasi reikia is naujo atidarineti faila, imituojama - paleidziamas sleivas ir kilinamas
 
         Map<Long, Long> intervals = statExt.getIntervals().entrySet().stream().filter(v -> v.getValue() > (fromLine + 1))
                 .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));

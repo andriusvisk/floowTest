@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
@@ -19,15 +20,22 @@ import java.util.stream.Collectors;
  */
 public class CountService {
 
+    AtomicBoolean isJobDone;
+    Boolean allJobsAreSubmitted;
+
+    public CountService(AtomicBoolean isJobDone) {
+        this.isJobDone = isJobDone;
+        allJobsAreSubmitted = false;
+    }
+
     final static org.slf4j.Logger logger = LoggerFactory.getLogger(Application.class);
 
     public void process(final Parameters parameters) throws InterruptedException, IOException {
-        AliveService aliveService = new AliveService();
         DbUtils dbUtils = new DbUtils(parameters);
         Reading reading = createNewReadingState(parameters);
 
         try {
-            while (!aliveService.isJobFinished(parameters, dbUtils)) {
+            while (!isJobDone.get()) {
                 if (isIAmMaster(parameters, dbUtils)) {
                     doMyMasteWork(parameters, dbUtils, reading);
                 }
@@ -36,11 +44,13 @@ public class CountService {
                 TimeUnit.SECONDS.sleep(parameters.getReadingPauseInS());
             }
         } finally {
-            LineIterator.closeQuietly(reading.getIt());
+            reading.close();
         }
     }
 
     private void doMyMasteWork(final Parameters parameters, DbUtils dbUtils, Reading reading) {
+
+        // every runner finishes his life just after becoming master (exit queue)
 
         boolean freshStart = false;
         WordsStatistics mainStat = dbUtils.findOne(WordsStatistics.class);
@@ -102,7 +112,6 @@ public class CountService {
             List<Chunk> chunksNeedsBackReading = new ArrayList<>();
 
             for (Chunk chunkForResubm : listChunksFromDeadRunners) {
-//TODO pagauti cia paleidziant sleiva po intellij paleidimo
                 if (activeRunnersLastLine.keySet().size() > 0) {
                     Map.Entry clMe = activeRunnersLastLine.entrySet().stream().
                             filter(p -> p.getValue() < chunkForResubm.getFromLineNbr())
@@ -167,9 +176,14 @@ public class CountService {
                 while (++counter <= howManyChunksPerRunner) {
                     BufferChunk bufferChunk = reading.readNextChunkForMaster(parameters, itsMe, runner.getRunnerUUID(), wordsStatisticsExt, listAllChunks);
                     if (bufferChunk != null) {
-                        submitForExecution(bufferChunk, dbUtils);
-                    } else {
-                        //TODO readched end of file
+                        if(!bufferChunk.isNothingToRead()) {
+                            submitForExecution(bufferChunk, dbUtils);
+                        }else{
+                            logger.info("All jobs are submitted");
+                            allJobsAreSubmitted = true;
+                        }
+                    } else { // could not read from file
+                        isJobDone.set(true); // job is not done, but without reading the file I'm not usable, so I will exit
                     }
                 }
 
@@ -192,6 +206,13 @@ public class CountService {
                 logger.error("Error read chunk");
             }
         }
+        // did my job as master and slave if all the jobs ar submitted, I finished my jobs, so as a master i can exit
+        if(allJobsAreSubmitted){ // only master sets this variable
+            List<Chunk> listAllChunks = dbUtils.findAll(Chunk.class);
+            if(listAllChunks.size()<1) { // there are incompleted jobs, wait with exit
+                isJobDone.set(true);
+            }
+        }
     }
 
     private void submitForExecution(BufferChunk bufferChunk, DbUtils dbUtils) {
@@ -205,7 +226,7 @@ public class CountService {
     }
 
     private Reading createNewReadingState(final Parameters parameters) throws IOException {
-        return new Reading(FileUtils.lineIterator(new File(parameters.getSourceFileStr()), "UTF-8"));
+        return new Reading(parameters.getSourceFileStr());
     }
 
     private Map<String, Long> countStatistics(String str) {

@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -39,5 +40,10 @@ public class WebUtils {
 
     public DbUtils getDbUtils() {
         return dbUtils;
+    }
+
+    @PreDestroy
+    private void dispose(){
+        dbUtils.closeConnections();
     }
 }
